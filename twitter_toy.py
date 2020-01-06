@@ -54,6 +54,22 @@ def create_greeting():
 def date2int(date):
         return date.year*10000 + date.month*100 + date.day
 
+def format_response(tweet):
+        if tweet.in_reply_to_status_id:
+                original_tweet = api.getStatus(tweet.in_reply_to_status_id)
+                original_auth = original_tweet.user.name
+                original_text = original_tweet.full_text
+                response = "{} tweeted {}. ".format(original_tweet,original_text)
+                response += "To which {} replied: {}".format(tweet.user.name, tweet.full_text)
+        elif tweet.quoted_status:
+                quoted_tweet = tweet.quoted_status
+                response = "{}'s tweet saying {} was quoted by {}, adding {}.".format(quoted_tweet.user.name, quoted_tweet.full_text, tweet.user.name, tweet.full_text)
+        elif tweet.retweeted_status:
+                response = "{} retweeted the following tweet by {}. {}".format(tweet.user.name, tweet.retweeted_status.user.name, tweet.retweeted_status.full_text)
+        else:
+                response = "{} tweeted {}".format(tweet.user.name, tweet.full_text)
+        return response
+
 def main():
         api = twitter.Api(consumer_key="Q6wIR9BVePrYP9pnF4rYWRGtn",
                           consumer_secret="cJJmc2blM6QVSjcaim3R5hDtqNOEHANZcn2iuVw8UrgA1etXX2",
@@ -69,12 +85,12 @@ def main():
                 user = tweet.user.name
                 tweet_date = date2int(date.fromtimestamp(tweet.created_at_in_seconds))
                 if tweet_date < cur_date:
-                    spk_date = convert_date(tweet.created_at)
-                    espeak(spk_date,args=None)
-                    cur_date = tweet_date
-                if tweet.in_reply_to_user_id:
-                       replied_to =  # get user.name from user_id
-                sp.run(['espeak-ng', 
+                        spk_date = convert_date(tweet.created_at)
+                        espeak(spk_date,args=None)
+                        cur_date = tweet_date
+
+                response = format_response(tweet)
+                espeak(response, args=None)
         
 if __name__ == "__name__":
         main()
