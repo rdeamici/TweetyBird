@@ -1,9 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
+
 import twitter
 import requests
 import subprocess as sp
-import datetime, time
-import num2words
+import datetime
+from datetime import time
+from num2words import num2words
 
 def convert_date(date):
         dow = {"Mon":"monday",
@@ -24,30 +26,30 @@ def convert_date(date):
                  "Oct":"october",
                  "Nov":"november",
                  "Dec":"december"}
-        
+
         date = date.split()
         date = date[:3]
         date[0] = dow[date[0]]
         date[1] = month[date[1]]
-        date[2] = num2words(date[2],to="ordinal")
+        date[2] = num2words(date[2],to='ordinal')
         return ' '.join(date)
 
 def espeak(text, *args):
-        arg_list = ["espeak-ng"]
-        if args is not None:   # TODO: look up way to join 2 lists 
+        args_list = ["espeak-ng"]
+        if args:
                 args_list.extend([text].extend(args))
         else:
-                list_of_args.append(text)
-        sp.run(list_of_args)
+                args_list.append(text)
+        sp.run(args_list)
 
 def create_greeting():
-        cur_time = datetime.now()
-        #TODO: fix this so it actually checks for proper time
+        cur_time = datetime.datetime.now()
+        print(type(cur_time.hour))
         if cur_time.hour < 12:
                 greeting = "Good Morning! "
         elif cur_time.hour < 18:
                 greeting = "Good Afternoon! "
-        elif cur_time < 24:
+        elif cur_time.hour < 24:
                 greeting = "Good Evening! "
         return greeting+"Here are some recent tweets from your timeline."
 
@@ -77,20 +79,19 @@ def main():
                           access_token_secret="l0pDPKJSskdWZ2GZlMfB5GvoiO61ZksOhgO4Dvk09htuh",
                           tweet_mode='extended')
         tweets = api.GetHomeTimeline(count=20, exclude_replies=True)
+        print("made it to main")
         greeting = create_greeting()
-        espeak(greeting,args=None)
-        cur_date = date2int(datetime.now) + 1
+        espeak(greeting)
+        cur_date = date2int(datetime.datetime.now()) + 1
         for tweet in tweets:
-                text = tweet.full_text
-                user = tweet.user.name
-                tweet_date = date2int(date.fromtimestamp(tweet.created_at_in_seconds))
+                tweet_date = date2int(datetime.date.fromtimestamp(tweet.created_at_in_seconds))
                 if tweet_date < cur_date:
                         spk_date = convert_date(tweet.created_at)
-                        espeak(spk_date,args=None)
+                        espeak(spk_date)
                         cur_date = tweet_date
 
                 response = format_response(tweet)
-                espeak(response, args=None)
-        
-if __name__ == "__name__":
+                espeak(response)
+
+if __name__ == "__main__":
         main()
