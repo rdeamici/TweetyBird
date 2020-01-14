@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import twitter
 import requests
@@ -35,6 +35,7 @@ def convert_date(date):
         return ' '.join(date)
 
 def espeak(text, *args):
+        print(args)
         args_list = ["espeak-ng"]
         if args:
                 args_list.extend([text].extend(args))
@@ -42,16 +43,14 @@ def espeak(text, *args):
                 args_list.append(text)
         sp.run(args_list)
 
-def create_greeting():
-        cur_time = datetime.datetime.now()
-        print(type(cur_time.hour))
-        if cur_time.hour < 12:
+def greeting(date):
+        if date.hour < 12:
                 greeting = "Good Morning! "
-        elif cur_time.hour < 18:
+        elif date.hour < 18:
                 greeting = "Good Afternoon! "
-        elif cur_time.hour < 24:
+        elif date.hour < 24:
                 greeting = "Good Evening! "
-        return greeting+"Here are some recent tweets from your timeline."
+        espeak(greeting+"Here are some recent tweets from your timeline.")
 
 def date2int(date):
         return date.year*10000 + date.month*100 + date.day
@@ -72,17 +71,12 @@ def format_response(tweet):
                 response = "{} tweeted {}".format(tweet.user.name, tweet.full_text)
         return response
 
-def main():
-        api = twitter.Api(consumer_key="Q6wIR9BVePrYP9pnF4rYWRGtn",
-                          consumer_secret="cJJmc2blM6QVSjcaim3R5hDtqNOEHANZcn2iuVw8UrgA1etXX2",
-                          access_token_key="1210385185692217345-juZyflHFepN7gemEjAxhKMoQespSg9",
-                          access_token_secret="l0pDPKJSskdWZ2GZlMfB5GvoiO61ZksOhgO4Dvk09htuh",
-                          tweet_mode='extended')
+def main(api):
         tweets = api.GetHomeTimeline(count=20, exclude_replies=True)
-        print("made it to main")
-        greeting = create_greeting()
-        espeak(greeting)
-        cur_date = date2int(datetime.datetime.now()) + 1
+        cur_date = datetime.datetime.now()
+        greeting(cur_date)
+        comparable_date = date2int(cur_date)
+        cur_date += 1
         for tweet in tweets:
                 tweet_date = date2int(datetime.date.fromtimestamp(tweet.created_at_in_seconds))
                 if tweet_date < cur_date:
@@ -94,4 +88,10 @@ def main():
                 espeak(response)
 
 if __name__ == "__main__":
-        main()
+        api = twitter.Api(consumer_key="Q6wIR9BVePrYP9pnF4rYWRGtn",
+                          consumer_secret="cJJmc2blM6QVSjcaim3R5hDtqNOEHANZcn2iuVw8UrgA1etXX2",
+                          access_token_key="1210385185692217345-juZyflHFepN7gemEjAxhKMoQespSg9",
+                          access_token_secret="l0pDPKJSskdWZ2GZlMfB5GvoiO61ZksOhgO4Dvk09htuh",
+                          tweet_mode='extended')
+        
+        main(api)
