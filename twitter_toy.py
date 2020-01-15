@@ -3,15 +3,16 @@
 import twitter
 import requests
 import subprocess as sp
-import datetime
+import datetime, re
 from datetime import time
-from num2words import num2words
 
-def convert_date(date):
+
+
+def niceSoundingDate(date):
         dow = {"Mon":"monday",
-               "Tues":"tuesday",
+               "Tue":"tuesday",
                "Wed":"wednesday",
-               "Thurs":"thursday",
+               "Thu":"thursday",
                "Fri":"friday",
                "Sat":"saturday",
                "Sun":"sunday"}
@@ -26,12 +27,20 @@ def convert_date(date):
                  "Oct":"october",
                  "Nov":"november",
                  "Dec":"december"}
+        ordinals = ["first","second","third","fourth","fifth","sixth","seventh",
+                    "eighth","ninth","tenth","eleventh","twelfth","thirteenth",
+                    "fourteenth", "fifteenth","sixteenth","seventeenth",
+                    "eighteenth","nineteenth","twentieth","twenty first",
+                    "twenty second","twenty third", "twenty fourth",
+                    "twenty fifth","twenty sixth","twenty seventh",
+                    "twenty eighth","twenty ninth","thirtieth","thirty first"]
+
 
         date = date.split()
-        date = date[:3]
+        date = date[0:3]
         date[0] = dow[date[0]]
         date[1] = month[date[1]]
-        date[2] = num2words(date[2],to='ordinal')
+        date[2] = ordinals[int(date[2])-1]
         return ' '.join(date)
 
 def espeak(text, *args):
@@ -43,49 +52,86 @@ def espeak(text, *args):
                 args_list.append(text)
         sp.run(args_list)
 
+def remove_http(text):
+        i = text.find("http")
+        text = text[:i]
+        return text
+        
 def greeting(date):
+        ordinals = ["first","second","third","fourth","fifth","sixth","seventh",
+                    "eighth","ninth","tenth","eleventh","twelfth","thirteenth",
+                    "fourteenth", "fifteenth","sixteenth","seventeenth",
+                    "eighteenth","nineteenth","twentieth","twenty first",
+                    "twenty second","twenty third", "twenty fourth",
+                    "twenty fifth","twenty sixth","twenty seventh",
+                    "twenty eighth","twenty ninth","thirtieth","thirty first"]
+        
+        if date.minute == 0:
+                minute = ""
+        elif date.minute < 10:
+                minute = "oh {}".format(date.minute)
+        else:
+                minute = date.minute
+
+        dow = date.strftime('%A')
+        month = date.strftime('%B')
+        day = ordinals[date.day - 1]
+        am_pm = date.strftime('%p')
         if date.hour < 12:
-                greeting = "Good Morning! "
+                greeting = "Good Morning!"
         elif date.hour < 18:
-                greeting = "Good Afternoon! "
-        elif date.hour < 24:
-                greeting = "Good Evening! "
-        espeak(greeting+"Here are some recent tweets from your timeline.")
+                greeting = "Good Afternoon!"
+        else:
+                greeting = "Good Evening!"
+
+        hour = date.strftime('%I')
+        if hour.startswith('0'): hour = hour[1]
+        response = "{0} It is {1} {2} {3} on {4}, {5} {6}.".format(greeting, hour, minute, am_pm, dow, month, day)
+        response = re.sub("\s\s+", " ", response)
+        response += " Here are some recent tweets from your timeline"
+        print(response)
+       # espeak(response)
 
 def date2int(date):
         return date.year*10000 + date.month*100 + date.day
 
 def format_response(tweet):
+        top_level_tweet_text = remove_http(tweet.full_text)
         if tweet.in_reply_to_status_id:
-                original_tweet = api.getStatus(tweet.in_reply_to_status_id)
+                original_tweet = api.GetStatus(tweet.in_reply_to_status_id)
                 original_auth = original_tweet.user.name
-                original_text = original_tweet.full_text
-                response = "{} tweeted {}. ".format(original_tweet,original_text)
-                response += "To which {} replied: {}".format(tweet.user.name, tweet.full_text)
+                original_text = remove_http(original_tweet.full_text)
+                response = "{} tweeted {}. ".format(original_auth,original_text)
+                response += "To which {} replied: {}".format(tweet.user.name, top_level_tweet_text)
         elif tweet.quoted_status:
-                quoted_tweet = tweet.quoted_status
-                response = "{}'s tweet saying {} was quoted by {}, adding {}.".format(quoted_tweet.user.name, quoted_tweet.full_text, tweet.user.name, tweet.full_text)
+                quo_tweet = tweet.quoted_status
+                quo_full_text = remove_http(quo_tweet.full_text)
+                response = "{}'s tweet saying {} was quoted by {}, adding {}.".format(quo_tweet.user.name, quo_full_text, tweet.user.name,top_level_tweet_text)
         elif tweet.retweeted_status:
-                response = "{} retweeted the following tweet by {}. {}".format(tweet.user.name, tweet.retweeted_status.user.name, tweet.retweeted_status.full_text)
+                retweeted_text = remove_http(tweet.retweeted_status.full_text)
+                response = "{} retweeted the following tweet by {}. {}".format(tweet.user.name, tweet.retweeted_status.user.name, retweeted_text)
         else:
-                response = "{} tweeted {}".format(tweet.user.name, tweet.full_text)
+                response = "{} tweeted {}".format(tweet.user.name, top_level_tweet_text)
         return response
 
 def main(api):
         tweets = api.GetHomeTimeline(count=20, exclude_replies=True)
         cur_date = datetime.datetime.now()
         greeting(cur_date)
-        comparable_date = date2int(cur_date)
-        cur_date += 1
+        # add one to current date so we ensure it will always get spoken first time thru for-loop
+        cur_date = date2int(cur_date) + 1
         for tweet in tweets:
                 tweet_date = date2int(datetime.date.fromtimestamp(tweet.created_at_in_seconds))
                 if tweet_date < cur_date:
-                        spk_date = convert_date(tweet.created_at)
-                        espeak(spk_date)
+                        spk_date = niceSoundingDate(tweet.created_at)
+                        # espeak(spk_date)
+                        print(spk_date)
                         cur_date = tweet_date
 
                 response = format_response(tweet)
-                espeak(response)
+                print(response)
+                input("press any key to continue")
+               # espeak(response)
 
 if __name__ == "__main__":
         api = twitter.Api(consumer_key="Q6wIR9BVePrYP9pnF4rYWRGtn",
