@@ -95,6 +95,9 @@ def greeting(date):
 def date2int(date):
         return date.year*10000 + date.month*100 + date.day
 
+def check_for_holiday(date):
+        #TODO: check for holidays and append to greeting
+
 def format_response(tweet):
         top_level_tweet_text = remove_http(tweet.full_text)
         if tweet.in_reply_to_status_id:
@@ -106,7 +109,7 @@ def format_response(tweet):
         elif tweet.quoted_status:
                 quo_tweet = tweet.quoted_status
                 quo_full_text = remove_http(quo_tweet.full_text)
-                response = "{}'s tweet saying {} was quoted by {}, adding {}.".format(quo_tweet.user.name, quo_full_text, tweet.user.name,top_level_tweet_text)
+                response = "{} quoted {}'s tweet that says {}. And then {} added {}.".format(tweet.user.name,quo_tweet.user.name,quo_full_text,top_level_tweet_text)
         elif tweet.retweeted_status:
                 retweeted_text = remove_http(tweet.retweeted_status.full_text)
                 response = "{} retweeted the following tweet by {}. {}".format(tweet.user.name, tweet.retweeted_status.user.name, retweeted_text)
