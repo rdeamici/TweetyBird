@@ -52,10 +52,32 @@ def espeak(text, *args):
                 args_list.append(text)
         sp.run(args_list)
 
-def remove_http(text):
-        i = text.find("http")
-        text = text[:i]
-        return text
+def delete_inaudibles(text):
+        text_flags = [0]*len(text)
+        # flag the urls in the text
+        urls = tweet.urls
+        for url in urls:
+                indices = url.indices
+                text_flags[indices[0]:indices[1]] = [1]*(indices[1]-indices[0])
+
+        new_text = ''
+        for i in range(len(text_flags)):
+                if text_flags[i]==0:
+                        new_text += text[i]
+                else:
+                        new_text += ' '
+        return new_text
+        
+def audible_text(tweet):
+        text = delete_audibles(tweet.full_text)
+        # TODO: format text based on other properties of tweet object
+        user_mentions = tweet.user_mentions
+        for m in user_mentions:
+                indices = m.indices
+                
+                
+
+                
         
 def greeting(date):
         ordinals = ["first","second","third","fourth","fifth","sixth","seventh",
@@ -99,7 +121,7 @@ def check_for_holiday(date):
         #TODO: check for holidays and append to greeting
 
 def format_response(tweet):
-        top_level_tweet_text = remove_http(tweet.full_text)
+        top_level_tweet_text = audible_text(tweet.full_text)
         if tweet.in_reply_to_status_id:
                 original_tweet = api.GetStatus(tweet.in_reply_to_status_id)
                 original_auth = original_tweet.user.name
