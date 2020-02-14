@@ -9,9 +9,17 @@ from t import ACCESS_TOKEN_KEY, ACCESS_TOKEN_SECRET, CONSUMER_KEY, CONSUMER_SECR
 from t import dow, month
 from t import date_ordinals as ordinals
 
-class tweet(twitter.models.Status):
+class Vocalizer(twitter.models.Status):
     # TODO: wrap the Status class with the below functions
-    pass
+    def __init__(self, tweet):
+        self.tweet = tweet
+
+
+    def user_name(user_name,i,j):
+        tweet.user_mentions
+            
+
+
 
 def niceSoundingDate(date):
     date = date.split()
@@ -30,12 +38,8 @@ def espeak(text, *args):
         args_list.extend([text].extend(args))
     else:
         args_list.append(text)
+        
     sp.run(args_list)
-
-
-
-def user_name(user_name,i,j):
-    tweet.user_mentions
         
 
     
@@ -155,11 +159,14 @@ def format_response(tweet):
 
 def main(api):
     tweets = api.GetHomeTimeline(count=20, exclude_replies=True)
+    audible_tweets = [Vocalizer(tweet) for tweet in tweets] 
     cur_date = datetime.datetime.now()
+    # eventually we should put the greeting in a shell script
     greeting(cur_date)
-    # add one to current date so we ensure it will always get spoken first time thru for-loop
+    # add one to current date so we ensure
+    #it will always get spoken first time thru for-loop
     cur_date = date2int(cur_date) + 1
-    for tweet in tweets:
+    for audible_tweet in audible_tweets:
         tweet_date = date2int(datetime.date.fromtimestamp(tweet.created_at_in_seconds))
         if tweet_date < cur_date:
             spk_date = niceSoundingDate(tweet.created_at)
@@ -174,7 +181,7 @@ def main(api):
 
 if __name__ == "__main__":
     api = twitter.Api(consumer_key=CONSUMR_KEY,
-                      consumer_secret=cCONSUMER_SECRET,
+                      consumer_secret=CONSUMER_SECRET,
                       access_token_key=ACCESS_TOKEN_KEY,
                       access_token_secret=ACCESS_TOKEN_SECRET,
                       tweet_mode='extended')
