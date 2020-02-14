@@ -9,10 +9,54 @@ from t import ACCESS_TOKEN_KEY, ACCESS_TOKEN_SECRET, CONSUMER_KEY, CONSUMER_SECR
 from t import dow, month
 from t import date_ordinals as ordinals
 
+
+# this class takes a single tweet and turns it into something producable by a TTS engine
 class Vocalizer(twitter.models.Status):
     # TODO: wrap the Status class with the below functions
-    def __init__(self, tweet):
-        self.tweet = tweet
+    def __init__(self, Tweet):
+        self.tweet = Tweet
+        self.speakable = audible_text()
+
+    def audible_text():
+        original_text = delete_audibles(tweet.full_text)
+        # TODO: format text based on other properties of tweet object
+        audible_text = ''
+        text_flags = [0]*len(original_text)
+        urls = tweet.urls
+        user_mentions = tweet.user_mentions
+        hashtags = tweet.hashtags
+        # 1 == characters to delete
+        # 2 == user_names to expand from user_name to display names
+        # 3 == hashtags to process into a more readable form
+        for url in urls:
+            i,j = url.indices
+            text_flags[i:j] = [1]*(j-i)
+        for m in user_mentions:
+            i,j = m.indices
+            text_flags[i] = [2]
+            i += 1
+            text_flags[i] = [2, m.name]
+            text_flags[i:j] = [2]*(j-i)
+        for h in hashtags:
+            i,j = h.hashtags
+            text_flags[i:j] = [3]*(j-1)
+
+        #final processing step
+        for i in range(len(text_flags)):
+            if text_flags[i]==0:
+                audible_text += text[i]
+            elif text_flags[i]==2:
+                start = i
+                while text_flags[i] == 2:
+                    i += 1
+                    stop = i
+                    audible_text += user_name(original_text,i,j)
+                    new_text += ' '
+        
+        user_mentions = tweet.user_mentions
+        for m in user_mentions:
+            indices = m.indices
+
 
 
     def user_name(user_name,i,j):
@@ -43,45 +87,6 @@ def espeak(text, *args):
         
 
     
-def audible_text(tweet):
-    original_text = delete_audibles(tweet.full_text)
-    # TODO: format text based on other properties of tweet object
-    audible_text = ''
-    text_flags = [0]*len(original_text)
-    urls = tweet.urls
-    user_mentions = tweet.user_mentions
-    hashtags = tweet.hashtags
-    # 1 == characters to delete
-    # 2 == user_names to expand from user_name to display names
-    # 3 == hashtags to process into a more readable form
-    for url in urls:
-        i,j = url.indices
-        text_flags[i:j] = [1]*(j-i)
-    for m in user_mentions:
-        i,j = m.indices
-        text_flags[i] = [2]
-        i += 1
-        text_flags[i] = [2, m.name]
-        text_flags[i:j] = [2]*(j-i)
-    for h in hashtags:d
-        i,j = h.hashtags
-        text_flags[i:j] = [3]*(j-1)
-
-    #final processing step
-    for i in range(len(text_flags)):
-        if text_flags[i]==0:
-            audible_text += text[i]
-        elif text_flags[i]==2:
-            start = i
-            while text_flags[i] == 2:
-                i += 1
-                stop = i
-                audible_text += user_name(original_text,i,j)
-                new_text += ' '
-        
-    user_mentions = tweet.user_mentions
-    for m in user_mentions:
-        indices = m.indices
                 
 
 
@@ -159,14 +164,14 @@ def format_response(tweet):
 
 def main(api):
     tweets = api.GetHomeTimeline(count=20, exclude_replies=True)
-    audible_tweets = [Vocalizer(tweet) for tweet in tweets] 
+    speakable_tweets = [Vocalizer(tweet) for tweet in tweets] 
     cur_date = datetime.datetime.now()
     # eventually we should put the greeting in a shell script
     greeting(cur_date)
     # add one to current date so we ensure
     #it will always get spoken first time thru for-loop
     cur_date = date2int(cur_date) + 1
-    for audible_tweet in audible_tweets:
+    for speakable_tweet in speakable_tweets:
         tweet_date = date2int(datetime.date.fromtimestamp(tweet.created_at_in_seconds))
         if tweet_date < cur_date:
             spk_date = niceSoundingDate(tweet.created_at)
@@ -174,10 +179,10 @@ def main(api):
             print(spk_date)
             cur_date = tweet_date
 
-            response = format_response(tweet)
-            print(response)
-            input("press any key to continue")
-            # espeak(response)
+        response = speakable_tweet.speak 
+        print(response)
+        input("press any key to continue")
+        # espeak(response)
 
 if __name__ == "__main__":
     api = twitter.Api(consumer_key=CONSUMR_KEY,
