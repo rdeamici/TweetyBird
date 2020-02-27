@@ -12,10 +12,9 @@ from t import date_ordinals as ordinals
 
 # this class takes a single tweet and turns it into something producable by a TTS engine
 class Vocalizer(twitter.models.Status):
-    # TODO: wrap the Status class with the below functions
-    def __init__(self, Tweet):
-        self.tweet = Tweet
-        self.speakable = audible_text()
+    def __init__(self, Status):
+        for param, val in Status.param_defaults:
+	        setattr(self,param,val)
 
     def audible_text():
         original_text = delete_audibles(tweet.full_text)
